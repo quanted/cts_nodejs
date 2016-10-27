@@ -1,0 +1,17 @@
+{
+	"name": "cts_nodejs",
+	"version": "0.0.1",
+	"description": "cts web socket and session managing",
+	"main": "node_server.js",
+	"dependencies": {
+		"express": "4.13.4",
+		"socket.io": "0.9.17",
+		"redis": "0.7.3",
+		"querystring": "0.2.0",
+		"path": "0.12.7"
+	},
+	"engines": {
+		"node": "0.12.2"
+	},
+	"author": "nick pope"
+}
