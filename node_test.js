@@ -9,7 +9,7 @@ app.get('/', function(req, res){
 });
 
 app.get('/test', function(req, res) {
-    res.sendFile(path.join(__dirname + '/ws_test_page.html'));
+    res.sendFile(path.join(__dirname + '/public/html/ws_test_page.html'));
 });
 
 app.listen(config.server.test_port);

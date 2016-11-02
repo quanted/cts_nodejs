@@ -27,14 +27,15 @@ io.sockets.on('connection', function (socket) {
     console.log("session id: " + socket.id);
 
     var message_client = redis.createClient();
-    console.log("nodejs connected to redis..");
+    // console.log("nodejs connected to redis..");
 
     message_client.subscribe(socket.id); // create channel with client's socket id
-    console.log("subscribed to channel " + socket.id);
+    // console.log("subscribed to channel " + socket.id);
     
     // Grab message from Redis that was created by django and send to client
     message_client.on('message', function(channel, message){
-        console.log("reading message from redis on channel: " + channel);
+        // console.log("reading message from redis on channel: " + channel);
+        console.log("messaged received from django-cts via redis sub")
         socket.send(message); // send to browser
     });
     
@@ -82,7 +83,8 @@ io.sockets.on('connection', function (socket) {
     });
 
     socket.on('error', function () {
-        console.log("An error occured");
+        // console.log("An error occured");
+        console.log("%%%% AND ERROR OCCURRED %%%%")
     });
 
 });
