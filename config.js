@@ -25,4 +25,4 @@ config.redis = {
 	'port': process.env.REDIS_PORT || 6379
 };
 
-module.exports = config;  // make config obj a module!
+module.exports = config;  // makes config obj a module!

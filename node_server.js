@@ -9,9 +9,9 @@ var config = require('./config');
 var express = require('express');
 var app = express();
 
-// var http = require('http');
-// var server = http.createServer().listen(config.server.port);
-// var io = require('socket.io').listen(server);
+app.get('/test', function(req, res){
+  res.send('hey');
+});
 
 var io = require('socket.io').listen(app.listen(config.server.port));
 
