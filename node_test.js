@@ -1,25 +1,40 @@
-var config = require('./config');
-// var node_server = require('./node_server');  // importing CTS request func
-var path = require('path');
-var express = require('express');
-var app = express();
+// var config = require('./config');
+// // var node_server = require('./node_server');  // importing CTS request func
+// var path = require('path');
+// var express = require('express');
+// var app = express();
 
-app.get('/', function(req, res){
-  res.send('hello world');
-});
+var config = require('./config');
+
+var querystring = require('querystring');
+// var redis = require('redis');
+var http = require('http');
+var io = require('socket.io');
+var path = require('path');
+
+var express = require('express');
+var app = express()
+    , server = http.createServer(app)
+    , io = io.listen(server);
+
+server.listen(config.server.port);
+
+// app.get('/', function(req, res){
+//   res.send('hello world');
+// });
 
 app.get('/test', function(req, res) {
     res.sendFile(path.join(__dirname + '/public/html/ws_test_page.html'));
 });
 
-app.listen(config.server.test_port);
+// app.listen(config.server.test_port);
 
-var http = require('http');
-var server = http.createServer().listen(config.server.port);
-var io = require('socket.io').listen(server);
+// var http = require('http');
+// var server = http.createServer().listen(config.server.port);
+// var io = require('socket.io').listen(server);
 
-console.log("web socket connection at http://localhost:" + config.server.port);
-console.log("test nodejs http connection at http://localhost:" + config.server.test_port);
+// console.log("web socket connection at http://localhost:" + config.server.port);
+// console.log("test nodejs http connection at http://localhost:" + config.server.test_port);
 
 io.sockets.on('connection', function (socket) {
 

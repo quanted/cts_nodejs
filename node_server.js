@@ -6,18 +6,23 @@
 
 var config = require('./config');
 
+var querystring = require('querystring');
+var redis = require('redis');
+var http = require('http');
+var io = require('socket.io')
+
 var express = require('express');
-var app = express();
+var app = express()
+    , server = http.createServer(app)
+    , io = io.listen(server);
+
+server.listen(config.server.port);
 
 app.get('/test', function(req, res){
   res.send('hey');
 });
 
-var io = require('socket.io').listen(app.listen(config.server.port));
-
-var querystring = require('querystring');
-var redis = require('redis');
-var http = require('http');
+// var io = require('socket.io').listen(app.listen(config.server.port));
 
 // v0.12 way:
 io.sockets.on('connection', function (socket) {
