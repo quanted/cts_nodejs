@@ -47,7 +47,8 @@ $(document).ready(function () {
 
 		var host = $('#host').val();
 		var port = $('#port').val();
-		var socket = io.connect(host, {'port': port, 'force new connection': true});
+		// var socket = io.connect(host, {'port': port, 'force new connection': true});
+		var socket = io.connect();
 
 		socket.emit('test_socket', "hey, node");
 
