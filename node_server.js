@@ -92,6 +92,22 @@ io.sockets.on('connection', function (socket) {
         console.log("%%%% AND ERROR OCCURRED %%%%")
     });
 
+    socket.on('test_socket', function (message) {
+        console.log("node received message: ");
+        console.log(message);
+        socket.send("hello from nodejs! at " + config.server.host + ", port " + config.server.port);
+    });
+
+    // test django-cts celery worker
+    socket.on('test_celery', function (message) {
+        console.log("received message: " + message);
+        var query = querystring.stringify({
+            sessionid: socket.id, // cts will now publish to session channel
+            message: message
+        });
+        passRequestToCTS(query);
+    });
+
 });
 
 
