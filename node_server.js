@@ -19,7 +19,8 @@ var app = express()
 server.listen(config.server.port);
 
 app.get('/test', function(req, res){
-  res.send('hey');
+  // res.send('hey');
+  res.sendFile(path.join(__dirname + '/public/html/ws_test_page.html'));
 });
 
 // var io = require('socket.io').listen(app.listen(config.server.port));
