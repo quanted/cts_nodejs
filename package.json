@@ -4,14 +4,14 @@
 	"description": "cts web socket and session managing",
 	"main": "node_server.js",
 	"dependencies": {
-		"express": "4.13.4",
-		"socket.io": "0.9.17",
-		"redis": "0.7.3",
-		"querystring": "0.2.0",
-		"path": "0.12.7"
+		"express": "*",
+		"socket.io": "*",
+		"redis": "*",
+		"querystring": "*",
+		"path": "*"
 	},
 	"engines": {
-		"node": "0.12.2"
+		"node": "*"
 	},
 	"author": "nick pope"
 }

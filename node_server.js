@@ -9,7 +9,34 @@ var config = require('./config');
 var querystring = require('querystring');
 var redis = require('redis');
 var http = require('http');
-var io = require('socket.io')
+var io = require('socket.io');
+var path = require('path');
+
+var celery = require('node-celery'),
+    client = celery.createClient({
+        CELERY_BROKER_URL: 'redis://localhost:6379/0',
+        CELERY_RESULT_BACKEND: 'redis://localhost:6379/0',
+        CELERY_ROUTES: {
+            'celery_cts.tasks.chemaxonTask': {
+                queue: 'chemaxon'
+            },
+            'celery_cts.tasks.sparcTask': {
+                queue: 'sparc'
+            },
+            'celery_cts.tasks.epiTask': {
+                queue: 'epi'
+            },
+            'celery_cts.tasks.testTask': {
+                queue: 'test'
+            },
+            'celery_cts.tasks.measuredTask': {
+                queue: 'measured'
+            }
+        }
+    }),
+    client.on('error', function(err) {
+        console.log(err);
+    });
 
 var express = require('express');
 var app = express()
@@ -24,6 +51,9 @@ app.get('/test', function(req, res){
 });
 
 // var io = require('socket.io').listen(app.listen(config.server.port));
+
+console.log("cts_nodejs running at " + config.server.host + ", port " + config.server.port);
+console.log("cts_nodejs test at /test");
 
 // v0.12 way:
 io.sockets.on('connection', function (socket) {
@@ -70,7 +100,8 @@ io.sockets.on('connection', function (socket) {
             message: JSON.stringify(values)
         });
 
-        passRequestToCTS(query);
+        // passRequestToCTS(query);
+        parseRequestsToCeleryWorkers(socket.id, message_obj);
 
     });
 
@@ -84,7 +115,8 @@ io.sockets.on('connection', function (socket) {
             message: JSON.stringify(message_obj)
         });
 
-        passRequestToCTS(query);
+        // passRequestToCTS(query);
+        parseRequestsToCeleryWorkers(socket.id, message_obj);
 
     });
 
@@ -104,12 +136,47 @@ io.sockets.on('connection', function (socket) {
         console.log("received message: " + message);
         var query = querystring.stringify({
             sessionid: socket.id, // cts will now publish to session channel
-            message: message
+            message: "hello celery"
         });
-        passRequestToCTS(query);
+        // passRequestToCTS(query);
+        client.call('celery_cts.tasks.test_celery', [socket.id, 'hello celery'], function(result) {
+            console.log(result);
+            client.end();
+        });
+
     });
 
 });
+
+
+function parseRequestsToCeleryWorkers(sessionid, data_obj) {
+
+    for (var calc in data_obj['pchem_request']) {
+
+        data_obj['calc'] = calc;
+        data_obj['props'] = data_obj['pchem_request'][calc];
+        data_obj['sessionid'] = sessionid;
+
+        if (calc == 'chemaxon') {
+            client.call('celery_cts.tasks.chemaxonTask', [data_obj]);
+        }
+        else if (calc == 'sparc') {
+            client.call('celery_cts.tasks.sparcTask', [data_obj]);   
+        }
+        else if (calc == 'epi') {
+            client.call('celery_cts.tasks.epiTask', [data_obj]);   
+        }
+        else if (calc == 'test') {
+            client.call('celery_cts.tasks.testTask', [data_obj]);   
+        }
+        else if (calc == 'measured') {
+            client.call('celery_cts.tasks.measuredTask', [data_obj]);   
+        }
+
+    }
+
+}
+ 
 
 
 function passRequestToCTS (values) {
