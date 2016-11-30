@@ -33,7 +33,7 @@ var celery = require('node-celery'),
                 queue: 'measured'
             }
         }
-    }),
+    });
     client.on('error', function(err) {
         console.log(err);
     });
