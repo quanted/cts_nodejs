@@ -8,7 +8,8 @@
 		"socket.io": "*",
 		"redis": "*",
 		"querystring": "*",
-		"path": "*"
+		"path": "*",
+		"node-celery": "*"
 	},
 	"engines": {
 		"node": "*"

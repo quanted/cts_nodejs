@@ -17,6 +17,9 @@ var celery = require('node-celery'),
         CELERY_BROKER_URL: 'redis://localhost:6379/0',
         CELERY_RESULT_BACKEND: 'redis://localhost:6379/0',
         CELERY_ROUTES: {
+            'celery_cts.tasks.removeUserJobsFromQueue': {
+                queue: 'manager'
+            },
             'celery_cts.tasks.chemaxonTask': {
                 queue: 'chemaxon'
             },
@@ -56,8 +59,8 @@ console.log("cts_nodejs running at " + config.server.host + ", port " + config.s
 console.log("cts_nodejs test at /test");
 
 // v0.12 way:
-io.sockets.on('connection', function (socket) {
-// v4+ way:
+io.sockets.on('connection', function (socket) 
+{// v4+ way:
 // io.on('connection', function (socket) {
 
     console.log("session id: " + socket.id);
@@ -79,7 +82,7 @@ io.sockets.on('connection', function (socket) {
     socket.on('get_data', function (message) {
 
         console.log("nodejs server received message..");
-        console.log(message);
+        // console.log(message);
 
         var message_obj = JSON.parse(message);  // parse json str to obj
 
@@ -121,8 +124,7 @@ io.sockets.on('connection', function (socket) {
     });
 
     socket.on('error', function () {
-        // console.log("An error occured");
-        console.log("%%%% AND ERROR OCCURRED %%%%")
+        console.log("A socket error occured in cts_nodejs..");
     });
 
     socket.on('test_socket', function (message) {
@@ -138,6 +140,7 @@ io.sockets.on('connection', function (socket) {
             sessionid: socket.id, // cts will now publish to session channel
             message: "hello celery"
         });
+
         // passRequestToCTS(query);
         client.call('celery_cts.tasks.test_celery', [socket.id, 'hello celery'], function(result) {
             console.log(result);
@@ -150,6 +153,36 @@ io.sockets.on('connection', function (socket) {
 
 
 function parseRequestsToCeleryWorkers(sessionid, data_obj) {
+
+    if ('cancel' in data_obj) {
+        client.call('celery_cts.tasks.removeUserJobsFromQueue', [sessionid]);
+        // could send cancel notification to user..
+        return;
+    }
+
+    var user_jobs = [];
+
+    console.log("DATA OBJ: " + JSON.stringify(data_obj));
+
+    if ('nodes' in data_obj) {
+        for (node in data_obj['nodes']) {
+            var node_obj = data_obj['nodes'][node];
+            // todo: use new obj don't recycle data_obj it's confusing..
+            data_obj['node'] = node_obj;
+            data_obj['chemical'] = node_obj['smiles'];
+            jobID = pchemRequestHandler(sessionid, data_obj);
+            // user_jobs.push(jobID);
+        }
+    }
+    else {
+        jobID = pchemRequestHandler(sessionid, data_obj);
+        // user_jobs.push(jobID);
+    }
+    
+}
+
+
+function pchemRequestHandler(sessionid, data_obj) {
 
     for (var calc in data_obj['pchem_request']) {
 
@@ -173,33 +206,35 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj) {
             client.call('celery_cts.tasks.measuredTask', [data_obj]);   
         }
 
+        return sessionid;  // session ID used for job ID
+
     }
 
 }
  
 
 
-function passRequestToCTS (values) {
-    var options = {
-        host: config.cts.host,
-        port: config.cts.port,
-        path: config.cts.path,
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Length': values.length
-        }
-    };
-    // Send message to CTS server:
-    var req = http.request(options, function(res){
-        res.setEncoding('utf8');        
-        // Print out error message:
-        res.on('data', function(message){
-            if(message != 'Everything worked :)'){
-                console.log('Message: ' + message);
-            } 
-        });
-    });
-    req.write(values);
-    req.end();
-}
+// function passRequestToCTS (values) {
+//     var options = {
+//         host: config.cts.host,
+//         port: config.cts.port,
+//         path: config.cts.path,
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/x-www-form-urlencoded',
+//             'Content-Length': values.length
+//         }
+//     };
+//     // Send message to CTS server:
+//     var req = http.request(options, function(res){
+//         res.setEncoding('utf8');        
+//         // Print out error message:
+//         res.on('data', function(message){
+//             if(message != 'Everything worked :)'){
+//                 console.log('Message: ' + message);
+//             } 
+//         });
+//     });
+//     req.write(values);
+//     req.end();
+// }
