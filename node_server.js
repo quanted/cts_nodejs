@@ -206,9 +206,9 @@ function pchemRequestHandler(sessionid, data_obj) {
             client.call('celery_cts.tasks.measuredTask', [data_obj]);   
         }
 
-        return sessionid;  // session ID used for job ID
-
     }
+
+    return sessionid;  // session ID used for job ID
 
 }
  
