@@ -17,22 +17,22 @@ var celery = require('node-celery'),
         CELERY_BROKER_URL: 'redis://localhost:6379/0',
         CELERY_RESULT_BACKEND: 'redis://localhost:6379/0',
         CELERY_ROUTES: {
-            'celery_cts.tasks.removeUserJobsFromQueue': {
+            'tasks.removeUserJobsFromQueue': {
                 queue: 'manager'
             },
-            'celery_cts.tasks.chemaxonTask': {
+            'tasks.chemaxonTask': {
                 queue: 'chemaxon'
             },
-            'celery_cts.tasks.sparcTask': {
+            'tasks.sparcTask': {
                 queue: 'sparc'
             },
-            'celery_cts.tasks.epiTask': {
+            'tasks.epiTask': {
                 queue: 'epi'
             },
-            'celery_cts.tasks.testTask': {
+            'tasks.testTask': {
                 queue: 'test'
             },
-            'celery_cts.tasks.measuredTask': {
+            'tasks.measuredTask': {
                 queue: 'measured'
             }
         }
@@ -142,7 +142,7 @@ io.sockets.on('connection', function (socket)
         });
 
         // passRequestToCTS(query);
-        client.call('celery_cts.tasks.test_celery', [socket.id, 'hello celery'], function(result) {
+        client.call('tasks.test_celery', [socket.id, 'hello celery'], function(result) {
             console.log(result);
             client.end();
         });
@@ -155,7 +155,7 @@ io.sockets.on('connection', function (socket)
 function parseRequestsToCeleryWorkers(sessionid, data_obj) {
 
     if ('cancel' in data_obj) {
-        client.call('celery_cts.tasks.removeUserJobsFromQueue', [sessionid]);
+        client.call('tasks.removeUserJobsFromQueue', [sessionid]);
         // could send cancel notification to user..
         return;
     }
@@ -191,19 +191,19 @@ function pchemRequestHandler(sessionid, data_obj) {
         data_obj['sessionid'] = sessionid;
 
         if (calc == 'chemaxon') {
-            client.call('celery_cts.tasks.chemaxonTask', [data_obj]);
+            client.call('tasks.chemaxonTask', [data_obj]);
         }
         else if (calc == 'sparc') {
-            client.call('celery_cts.tasks.sparcTask', [data_obj]);   
+            client.call('tasks.sparcTask', [data_obj]);   
         }
         else if (calc == 'epi') {
-            client.call('celery_cts.tasks.epiTask', [data_obj]);   
+            client.call('tasks.epiTask', [data_obj]);   
         }
         else if (calc == 'test') {
-            client.call('celery_cts.tasks.testTask', [data_obj]);   
+            client.call('tasks.testTask', [data_obj]);   
         }
         else if (calc == 'measured') {
-            client.call('celery_cts.tasks.measuredTask', [data_obj]);   
+            client.call('tasks.measuredTask', [data_obj]);   
         }
 
     }
