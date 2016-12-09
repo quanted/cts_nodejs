@@ -12,10 +12,16 @@ var http = require('http');
 var io = require('socket.io');
 var path = require('path');
 
+// var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';
+var redis_url = 'redis://redis:6379/0';
+console.log("redis url " + redis_url)
+
 var celery = require('node-celery'),
     client = celery.createClient({
-        CELERY_BROKER_URL: 'redis://localhost:6379/0',
-        CELERY_RESULT_BACKEND: 'redis://localhost:6379/0',
+        // CELERY_BROKER_URL: 'redis://localhost:6379/0',
+        // CELERY_RESULT_BACKEND: 'redis://localhost:6379/0',
+        CELERY_BROKER_URL: redis_url,
+        CELERY_RESULT_BACKEND: redis_url,
         CELERY_ROUTES: {
             'tasks.removeUserJobsFromQueue': {
                 queue: 'manager'
@@ -46,6 +52,8 @@ var app = express()
     , server = http.createServer(app)
     , io = io.listen(server);
 
+// var server_
+
 server.listen(config.server.port);
 
 app.get('/test', function(req, res){
@@ -65,7 +73,9 @@ io.sockets.on('connection', function (socket)
 
     console.log("session id: " + socket.id);
 
-    var message_client = redis.createClient();
+    // ??? was this a thing when it was all working???
+    var message_client = redis.createClient(redis_url);
+    // var message_client = redis.createClient();
     // console.log("nodejs connected to redis..");
 
     message_client.subscribe(socket.id); // create channel with client's socket id
