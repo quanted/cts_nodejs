@@ -12,8 +12,8 @@ var http = require('http');
 var io = require('socket.io');
 var path = require('path');
 
-// var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';
-var redis_url = 'redis://redis:6379/0';
+var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';
+// var redis_url = 'redis://redis:6379/0';
 console.log("redis url " + redis_url)
 
 var celery = require('node-celery'),

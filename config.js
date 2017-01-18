@@ -22,7 +22,7 @@ config.server = {
 
 // redis config:
 config.redis = {
-	'host': process.env.REDIS_HOST || 'localhost',
+	'host': process.env.REDIS_HOSTNAME || 'localhost',
 	'port': process.env.REDIS_PORT || 6379
 };
 
