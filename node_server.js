@@ -194,6 +194,12 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj) {
 
 function pchemRequestHandler(sessionid, data_obj) {
 
+    if (data_obj['service'] == 'getSpeciationData') {
+        data_obj['sessionid'] = sessionid;
+        client.call('tasks.chemaxonTask', [data_obj]);
+        return sessionid;
+    }
+
     for (var calc in data_obj['pchem_request']) {
 
         data_obj['calc'] = calc;
