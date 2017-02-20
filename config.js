@@ -13,13 +13,6 @@ config.server = {
 	'port': process.env.NODEJS_PORT || 4000
 };
 
-// cts-django config
-// config.cts = {
-// 	'host': process.env.DJANGO_HOST || 'localhost',
-// 	'port': process.env.DJANGO_PORT || 8081,
-// 	'path': process.env.DJANGO_PATH || '/cts/portal'
-// };
-
 // redis config:
 config.redis = {
 	'host': process.env.REDIS_HOSTNAME || 'localhost',

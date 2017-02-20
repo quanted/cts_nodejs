@@ -9,7 +9,8 @@
 		"redis": "*",
 		"querystring": "*",
 		"path": "*",
-		"node-celery": "*"
+		"node-celery": "*",
+		"dotenv": "*"
 	},
 	"engines": {
 		"node": "*"
