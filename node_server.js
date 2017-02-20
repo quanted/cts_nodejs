@@ -52,7 +52,10 @@ var app = express()
 
 // var server_
 
-server.listen(process.env.NODEJS_PORT);
+var nodejs_port = config.server.port;
+var nodejs_host = config.server.host;
+
+server.listen(nodejs_port);
 
 app.get('/test', function(req, res){
   // res.send('hey');
@@ -61,7 +64,7 @@ app.get('/test', function(req, res){
 
 // var io = require('socket.io').listen(app.listen(process.env.port));
 
-console.log("cts_nodejs running at " + process.env.NODEJS_HOST + ", port " + process.env.NODEJS_PORT);
+console.log("cts_nodejs running at " + nodejs_host + ", port " + nodejs_port);
 console.log("cts_nodejs test at /test");
 
 // v0.12 way:
