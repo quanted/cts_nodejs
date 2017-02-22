@@ -181,6 +181,7 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj, client) {
             // todo: use new obj don't recycle data_obj it's confusing..
             data_obj['node'] = node_obj;
             data_obj['chemical'] = node_obj['smiles'];
+            data_obj['mass'] = node_obj['mass'];
             jobID = pchemRequestHandler(sessionid, data_obj, client);
             // user_jobs.push(jobID);
         }
