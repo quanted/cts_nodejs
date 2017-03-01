@@ -204,7 +204,7 @@ function requestHandler(sessionid, data_obj, client) {
     }
     else {
 
-        callPchemWorkers();  // sends requests to pchem workers
+        callPchemWorkers(sessionid, data_obj, client);  // sends requests to pchem workers
         return sessionid;
 
     }
@@ -212,7 +212,7 @@ function requestHandler(sessionid, data_obj, client) {
 }
 
 
-function callPchemWorkers() {
+function callPchemWorkers(sessionid, data_obj, client) {
     for (var calc in data_obj['pchem_request']) {
         data_obj['calc'] = calc;
         data_obj['props'] = data_obj['pchem_request'][calc];
