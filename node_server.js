@@ -182,49 +182,55 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj, client) {
             data_obj['node'] = node_obj;
             data_obj['chemical'] = node_obj['smiles'];
             data_obj['mass'] = node_obj['mass'];
-            jobID = pchemRequestHandler(sessionid, data_obj, client);
+            jobID = requestHandler(sessionid, data_obj, client);
             // user_jobs.push(jobID);
         }
     }
     else {
-        jobID = pchemRequestHandler(sessionid, data_obj, client);
+        jobID = requestHandler(sessionid, data_obj, client);
         // user_jobs.push(jobID);
     }
     
 }
 
 
-function pchemRequestHandler(sessionid, data_obj, client) {
+function requestHandler(sessionid, data_obj, client) {
 
     if (data_obj['service'] == 'getSpeciationData' || data_obj['service'] == 'getTransProducts') {
+        // chemspec batch and gentrans batch services
         data_obj['sessionid'] = sessionid;
         client.call('tasks.chemaxonTask', [data_obj]);
         return sessionid;
     }
     else {
 
-        for (var calc in data_obj['pchem_request']) {
-            data_obj['calc'] = calc;
-            data_obj['props'] = data_obj['pchem_request'][calc];
-            data_obj['sessionid'] = sessionid;
-            if (calc == 'chemaxon') {
-                client.call('tasks.chemaxonTask', [data_obj]);
-            }
-            else if (calc == 'sparc') {
-                client.call('tasks.sparcTask', [data_obj]);   
-            }
-            else if (calc == 'epi') {
-                client.call('tasks.epiTask', [data_obj]);   
-            }
-            else if (calc == 'test') {
-                client.call('tasks.testTask', [data_obj]);   
-            }
-            else if (calc == 'measured') {
-                client.call('tasks.measuredTask', [data_obj]);   
-            }
-        }
+        callPchemWorkers();  // sends requests to pchem workers
         return sessionid;
 
     }
 
+}
+
+
+function callPchemWorkers() {
+    for (var calc in data_obj['pchem_request']) {
+        data_obj['calc'] = calc;
+        data_obj['props'] = data_obj['pchem_request'][calc];
+        data_obj['sessionid'] = sessionid;
+        if (calc == 'chemaxon') {
+            client.call('tasks.chemaxonTask', [data_obj]);
+        }
+        else if (calc == 'sparc') {
+            client.call('tasks.sparcTask', [data_obj]);   
+        }
+        else if (calc == 'epi') {
+            client.call('tasks.epiTask', [data_obj]);   
+        }
+        else if (calc == 'test') {
+            client.call('tasks.testTask', [data_obj]);   
+        }
+        else if (calc == 'measured') {
+            client.call('tasks.measuredTask', [data_obj]);   
+        }
+    }
 }
