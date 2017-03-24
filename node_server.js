@@ -38,6 +38,9 @@ var celery = require('node-celery'),
             },
             'tasks.measuredTask': {
                 queue: 'measured'
+            },
+            'tasks.calcTask': {
+                queue: 'chemaxon'
             }
         }
     });
@@ -168,6 +171,7 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj, client) {
     if ('cancel' in data_obj) {
         client.call('tasks.removeUserJobsFromQueue', [sessionid]);
         // could send cancel notification to user..
+        console.log("Calling manager worker to cancel user job upon disconnect...");
         return;
     }
 
@@ -199,7 +203,8 @@ function requestHandler(sessionid, data_obj, client) {
     if (data_obj['service'] == 'getSpeciationData' || data_obj['service'] == 'getTransProducts') {
         // chemspec batch and gentrans batch services
         data_obj['sessionid'] = sessionid;
-        client.call('tasks.chemaxonTask', [data_obj]);
+        // client.call('tasks.chemaxonTask', [data_obj]);
+        client.call('tasks.calcTask', [data_obj]);
         return sessionid;
     }
     else {
@@ -218,11 +223,27 @@ function callPchemWorkers(sessionid, data_obj, client) {
         data_obj['props'] = data_obj['pchem_request'][calc];
         data_obj['sessionid'] = sessionid;
         if (calc == 'chemaxon') {
-            client.call('tasks.chemaxonTask', [data_obj]);
+            console.log("sending request to calc task");
+            client.call('tasks.calcTask', [data_obj]);
         }
         else if (calc == 'sparc') {
-            client.call('tasks.sparcTask', [data_obj]);   
+            client.call('tasks.sparcTask', [data_obj]);
         }
+        // if (calc == 'test') {
+        //     client.call('tasks.testTask', [data_obj]);
+        // }
+        // else {
+        //     console.log("sending request to calc task");
+        //     client.call('tasks.calcTask', [data_obj]);
+        // }
+
+
+        // if (calc == 'chemaxon') {
+        //     client.call('tasks.chemaxonTask', [data_obj]);
+        // }
+        // else if (calc == 'sparc') {
+        //     client.call('tasks.sparcTask', [data_obj]);   
+        // }
         else if (calc == 'epi') {
             client.call('tasks.epiTask', [data_obj]);   
         }
