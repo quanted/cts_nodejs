@@ -24,10 +24,10 @@ var celery = require('node-celery'),
             'tasks.removeUserJobsFromQueue': {
                 queue: 'manager'
             },
-            'tasks.chemaxonTask': {
+            'tasks.calcTask': {
                 queue: 'chemaxon'
             },
-            'tasks.sparcTask': {
+            'tasks.calcTask': {
                 queue: 'sparc'
             },
             'tasks.epiTask': {
@@ -38,10 +38,10 @@ var celery = require('node-celery'),
             },
             'tasks.measuredTask': {
                 queue: 'measured'
-            },
-            'tasks.calcTask': {
-                queue: 'chemaxon'
             }
+        //     'tasks.calcTask': {
+        //         queue: 'chemaxon'
+        //     }
         }
     });
     client.on('error', function(err) {
