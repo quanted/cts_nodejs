@@ -24,10 +24,10 @@ var celery = require('node-celery'),
             'tasks.removeUserJobsFromQueue': {
                 queue: 'manager'
             },
-            'tasks.calcTask': {
+            'tasks.chemaxonTask': {
                 queue: 'chemaxon'
             },
-            'tasks.calcTask': {
+            'tasks.sparcTask': {
                 queue: 'sparc'
             },
             'tasks.epiTask': {
@@ -203,8 +203,8 @@ function requestHandler(sessionid, data_obj, client) {
     if (data_obj['service'] == 'getSpeciationData' || data_obj['service'] == 'getTransProducts') {
         // chemspec batch and gentrans batch services
         data_obj['sessionid'] = sessionid;
-        // client.call('tasks.chemaxonTask', [data_obj]);
-        client.call('tasks.calcTask', [data_obj]);
+        client.call('tasks.chemaxonTask', [data_obj]);
+        // client.call('tasks.calcTask', [data_obj]);
         return sessionid;
     }
     else {
@@ -224,7 +224,7 @@ function callPchemWorkers(sessionid, data_obj, client) {
         data_obj['sessionid'] = sessionid;
         if (calc == 'chemaxon') {
             console.log("sending request to calc task");
-            client.call('tasks.calcTask', [data_obj]);
+            client.call('tasks.chemaxonTask', [data_obj]);
         }
         else if (calc == 'sparc') {
             client.call('tasks.sparcTask', [data_obj]);
