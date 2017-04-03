@@ -12,6 +12,8 @@ var http = require('http');
 var io = require('socket.io');
 var path = require('path');
 
+var chemaxon_kow_methods = ['KLOP', 'VG', 'PHYS'];
+
 var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';  // uses env vars, or defaults to localhost
 
 console.log("redis url " + redis_url)
@@ -219,39 +221,53 @@ function requestHandler(sessionid, data_obj, client) {
 
 function callPchemWorkers(sessionid, data_obj, client) {
     for (var calc in data_obj['pchem_request']) {
+
+        var props = data_obj['pchem_request'][calc];
+
         data_obj['calc'] = calc;
-        data_obj['props'] = data_obj['pchem_request'][calc];
+        // data_obj['props'] = data_obj['pchem_request'][calc];
         data_obj['sessionid'] = sessionid;
-        if (calc == 'chemaxon') {
-            console.log("sending request to calc task");
-            client.call('tasks.chemaxonTask', [data_obj]);
-        }
-        else if (calc == 'sparc') {
-            client.call('tasks.sparcTask', [data_obj]);
-        }
-        // if (calc == 'test') {
-        //     client.call('tasks.testTask', [data_obj]);
-        // }
-        // else {
-        //     console.log("sending request to calc task");
-        //     client.call('tasks.calcTask', [data_obj]);
-        // }
 
+        for (var prop_index = 0; prop_index < props.length; prop_index++) {
 
-        // if (calc == 'chemaxon') {
-        //     client.call('tasks.chemaxonTask', [data_obj]);
-        // }
-        // else if (calc == 'sparc') {
-        //     client.call('tasks.sparcTask', [data_obj]);   
-        // }
-        else if (calc == 'epi') {
-            client.call('tasks.epiTask', [data_obj]);   
-        }
-        else if (calc == 'test') {
-            client.call('tasks.testTask', [data_obj]);   
-        }
-        else if (calc == 'measured') {
-            client.call('tasks.measuredTask', [data_obj]);   
+            var prop = props[prop_index];
+
+            console.log("props " + props);
+            console.log("prop " + prop);
+
+            data_obj['prop'] = prop;
+
+            var is_chemaxon = calc == 'chemaxon';
+            var is_kow = prop == 'kow_no_ph' || prop == 'kow_wph';
+            if (is_chemaxon && is_kow) {
+                // chemaxon kow has values for 3 different methods
+                // note: this'll be in consumer.py and use the calc classes,
+                // so it can grab the methods from there..
+                for (var i = 0; i < chemaxon_kow_methods.length; i++) {
+                    data_obj['method'] = chemaxon_kow_methods[i];
+                    console.log("CHEMAXON KOW METHOD: " + chemaxon_kow_methods[i]);
+                    client.call('tasks.chemaxonTask', [data_obj]);
+                }
+            }
+            else {
+
+                if (calc == 'chemaxon') {
+                    console.log("sending request to chemaxon task");
+                    client.call('tasks.chemaxonTask', [data_obj]);
+                }
+                else if (calc == 'sparc') {
+                    client.call('tasks.sparcTask', [data_obj]);
+                }
+                else if (calc == 'epi') {
+                    client.call('tasks.epiTask', [data_obj]);   
+                }
+                else if (calc == 'test') {
+                    client.call('tasks.testTask', [data_obj]);   
+                }
+                else if (calc == 'measured') {
+                    client.call('tasks.measuredTask', [data_obj]);   
+                }
+            }
         }
     }
 }
