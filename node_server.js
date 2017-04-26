@@ -40,6 +40,9 @@ var celery = require('node-celery'),
             },
             'tasks.measuredTask': {
                 queue: 'measured'
+            },
+            'tasks.metabolizerTask': {
+                queue: 'metabolizer'
             }
         //     'tasks.calcTask': {
         //         queue: 'chemaxon'
@@ -184,17 +187,14 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj, client) {
     if ('nodes' in data_obj) {
         for (node in data_obj['nodes']) {
             var node_obj = data_obj['nodes'][node];
-            // todo: use new obj don't recycle data_obj it's confusing..
             data_obj['node'] = node_obj;
             data_obj['chemical'] = node_obj['smiles'];
             data_obj['mass'] = node_obj['mass'];
             jobID = requestHandler(sessionid, data_obj, client);
-            // user_jobs.push(jobID);
         }
     }
     else {
         jobID = requestHandler(sessionid, data_obj, client);
-        // user_jobs.push(jobID);
     }
     
 }
@@ -202,11 +202,18 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj, client) {
 
 function requestHandler(sessionid, data_obj, client) {
 
-    if (data_obj['service'] == 'getSpeciationData' || data_obj['service'] == 'getTransProducts') {
+    data_obj['sessionid'] = sessionid;
+
+    if (data_obj['service'] == 'getSpeciationData') {
         // chemspec batch and gentrans batch services
-        data_obj['sessionid'] = sessionid;
+        // data_obj['sessionid'] = sessionid;
         client.call('tasks.chemaxonTask', [data_obj]);
         // client.call('tasks.calcTask', [data_obj]);
+        return sessionid;
+    }
+    else if (data_obj['service'] == 'getTransProducts') {
+        console.log("calling metabolizer worker for transformation products");
+        client.call('tasks.metabolizerTask', [data_obj]);
         return sessionid;
     }
     else {
@@ -226,7 +233,7 @@ function callPchemWorkers(sessionid, data_obj, client) {
 
         data_obj['calc'] = calc;
         // data_obj['props'] = data_obj['pchem_request'][calc];
-        data_obj['sessionid'] = sessionid;
+        // data_obj['sessionid'] = sessionid;
 
         for (var prop_index = 0; prop_index < props.length; prop_index++) {
 
