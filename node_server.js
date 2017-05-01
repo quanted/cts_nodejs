@@ -12,6 +12,8 @@ var http = require('http');
 var io = require('socket.io');
 var path = require('path');
 
+var chemaxon_kow_methods = ['KLOP', 'VG', 'PHYS'];
+
 var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';  // uses env vars, or defaults to localhost
 
 console.log("redis url " + redis_url)
@@ -38,7 +40,13 @@ var celery = require('node-celery'),
             },
             'tasks.measuredTask': {
                 queue: 'measured'
+            },
+            'tasks.metabolizerTask': {
+                queue: 'metabolizer'
             }
+        //     'tasks.calcTask': {
+        //         queue: 'chemaxon'
+        //     }
         }
     });
     client.on('error', function(err) {
@@ -168,6 +176,7 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj, client) {
     if ('cancel' in data_obj) {
         client.call('tasks.removeUserJobsFromQueue', [sessionid]);
         // could send cancel notification to user..
+        console.log("Calling manager worker to cancel user job upon disconnect...");
         return;
     }
 
@@ -178,17 +187,14 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj, client) {
     if ('nodes' in data_obj) {
         for (node in data_obj['nodes']) {
             var node_obj = data_obj['nodes'][node];
-            // todo: use new obj don't recycle data_obj it's confusing..
             data_obj['node'] = node_obj;
             data_obj['chemical'] = node_obj['smiles'];
             data_obj['mass'] = node_obj['mass'];
             jobID = requestHandler(sessionid, data_obj, client);
-            // user_jobs.push(jobID);
         }
     }
     else {
         jobID = requestHandler(sessionid, data_obj, client);
-        // user_jobs.push(jobID);
     }
     
 }
@@ -196,10 +202,18 @@ function parseRequestsToCeleryWorkers(sessionid, data_obj, client) {
 
 function requestHandler(sessionid, data_obj, client) {
 
-    if (data_obj['service'] == 'getSpeciationData' || data_obj['service'] == 'getTransProducts') {
+    data_obj['sessionid'] = sessionid;
+
+    if (data_obj['service'] == 'getSpeciationData') {
         // chemspec batch and gentrans batch services
-        data_obj['sessionid'] = sessionid;
+        // data_obj['sessionid'] = sessionid;
         client.call('tasks.chemaxonTask', [data_obj]);
+        // client.call('tasks.calcTask', [data_obj]);
+        return sessionid;
+    }
+    else if (data_obj['service'] == 'getTransProducts') {
+        console.log("calling metabolizer worker for transformation products");
+        client.call('tasks.metabolizerTask', [data_obj]);
         return sessionid;
     }
     else {
@@ -214,23 +228,53 @@ function requestHandler(sessionid, data_obj, client) {
 
 function callPchemWorkers(sessionid, data_obj, client) {
     for (var calc in data_obj['pchem_request']) {
+
+        var props = data_obj['pchem_request'][calc];
+
         data_obj['calc'] = calc;
-        data_obj['props'] = data_obj['pchem_request'][calc];
-        data_obj['sessionid'] = sessionid;
-        if (calc == 'chemaxon') {
-            client.call('tasks.chemaxonTask', [data_obj]);
-        }
-        else if (calc == 'sparc') {
-            client.call('tasks.sparcTask', [data_obj]);   
-        }
-        else if (calc == 'epi') {
-            client.call('tasks.epiTask', [data_obj]);   
-        }
-        else if (calc == 'test') {
-            client.call('tasks.testTask', [data_obj]);   
-        }
-        else if (calc == 'measured') {
-            client.call('tasks.measuredTask', [data_obj]);   
+        // data_obj['props'] = data_obj['pchem_request'][calc];
+        // data_obj['sessionid'] = sessionid;
+
+        for (var prop_index = 0; prop_index < props.length; prop_index++) {
+
+            var prop = props[prop_index];
+
+            console.log("props " + props);
+            console.log("prop " + prop);
+
+            data_obj['prop'] = prop;
+
+            var is_chemaxon = calc == 'chemaxon';
+            var is_kow = prop == 'kow_no_ph' || prop == 'kow_wph';
+            if (is_chemaxon && is_kow) {
+                // chemaxon kow has values for 3 different methods
+                // note: this'll be in consumer.py and use the calc classes,
+                // so it can grab the methods from there..
+                for (var i = 0; i < chemaxon_kow_methods.length; i++) {
+                    data_obj['method'] = chemaxon_kow_methods[i];
+                    console.log("CHEMAXON KOW METHOD: " + chemaxon_kow_methods[i]);
+                    client.call('tasks.chemaxonTask', [data_obj]);
+                }
+            }
+            else {
+
+                if (calc == 'chemaxon') {
+                    console.log("sending request to chemaxon task");
+                    client.call('tasks.chemaxonTask', [data_obj]);
+                }
+                else if (calc == 'sparc') {
+                    client.call('tasks.sparcTask', [data_obj]);
+                }
+                else if (calc == 'epi') {
+                    client.call('tasks.epiTask', [data_obj]);   
+                }
+                else if (calc == 'test') {
+                    client.call('tasks.testTask', [data_obj]);   
+                }
+                else if (calc == 'measured') {
+                    client.call('tasks.measuredTask', [data_obj]);   
+                }
+            }
         }
     }
 }
