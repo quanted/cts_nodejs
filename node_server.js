@@ -43,6 +43,9 @@ var celery = require('node-celery'),
             },
             'tasks.metabolizerTask': {
                 queue: 'metabolizer'
+            },
+            'tasks.chemInfoTask': {
+                queue: 'cheminfo'
             }
         //     'tasks.calcTask': {
         //         queue: 'chemaxon'
@@ -204,6 +207,8 @@ function requestHandler(sessionid, data_obj, client) {
 
     data_obj['sessionid'] = sessionid;
 
+    console.log("Service: " + data_obj['service']);
+
     if (data_obj['service'] == 'getSpeciationData') {
         // chemspec batch and gentrans batch services
         // data_obj['sessionid'] = sessionid;
@@ -214,6 +219,11 @@ function requestHandler(sessionid, data_obj, client) {
     else if (data_obj['service'] == 'getTransProducts') {
         console.log("calling metabolizer worker for transformation products");
         client.call('tasks.metabolizerTask', [data_obj]);
+        return sessionid;
+    }
+    else if (data_obj['service'] == 'getChemInfo') {
+        console.log("calling chem info worker..");
+        client.call('tasks.chemInfoTask', [data_obj]);
         return sessionid;
     }
     else {
