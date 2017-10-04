@@ -38,6 +38,9 @@ var celery = require('node-celery'),
             'tasks.testTask': {
                 queue: 'test'
             },
+            'tasks.testWSTask': {
+                queue: 'test'  // putting testws on test queue
+            },
             'tasks.measuredTask': {
                 queue: 'measured'
             },
@@ -207,7 +210,7 @@ function requestHandler(sessionid, data_obj, client) {
 
     data_obj['sessionid'] = sessionid;
 
-    console.log("Service: " + data_obj['service']);
+    console.log(">>> Service: " + data_obj['service']);
 
     if (data_obj['service'] == 'getSpeciationData') {
         // chemspec batch and gentrans batch services
@@ -237,6 +240,10 @@ function requestHandler(sessionid, data_obj, client) {
 
 
 function callPchemWorkers(sessionid, data_obj, client) {
+
+    console.log("calling pchem worker");
+    console.log("data obj: " + data_obj);
+
     for (var calc in data_obj['pchem_request']) {
 
         var props = data_obj['pchem_request'][calc];
@@ -280,6 +287,10 @@ function callPchemWorkers(sessionid, data_obj, client) {
                 }
                 else if (calc == 'test') {
                     client.call('tasks.testTask', [data_obj]);   
+                }
+                else if (calc == 'testws') {
+                    console.log("sending request to testws task");
+                    client.call('tasks.testWSTask', [data_obj]);
                 }
                 else if (calc == 'measured') {
                     client.call('tasks.measuredTask', [data_obj]);   
