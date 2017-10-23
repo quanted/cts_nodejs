@@ -115,7 +115,7 @@ io.sockets.on('connection', function (socket)
         for (var key in message_obj) {
             if (message_obj.hasOwnProperty(key)) {
                 if (key == 'props') {
-                    values[key + '[]'] = message_obj[key];
+                    values[key + '[]'] = message_obj[key];  // fix for keys like: 'keyname[]' 
                 }
                 else {
                     values[key] = message_obj[key];
