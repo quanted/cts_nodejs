@@ -22,6 +22,38 @@ var celery = require('node-celery'),
     client = celery.createClient({
         CELERY_BROKER_URL: redis_url,
         CELERY_RESULT_BACKEND: redis_url,
+        CELERY_ROUTES: {
+            'tasks.removeUserJobsFromQueue': {
+                queue: 'manager'
+            },
+            'tasks.test_celery': {
+                queue: 'manager'
+            },
+            'tasks.cts_task': {
+                queue: 'chemaxon'
+            },
+            'tasks.cts_task': {
+                queue: 'sparc'
+            },
+            'tasks.cts_task': {
+                queue: 'epi'
+            },
+            'tasks.cts_task': {
+                queue: 'test'
+            },
+            'tasks.cts_task': {
+                queue: 'test'  // putting testws on test queue
+            },
+            'tasks.cts_task': {
+                queue: 'measured'
+            },
+            'tasks.cts_task': {
+                queue: 'metabolizer'
+            },
+            'tasks.cts_task': {
+                queue: 'cheminfo'
+            }
+        }
     }),
     // mapping cts_task w/ proper queue/worker:
     celery_tester = client.createTask('tasks.test_celery', {'queue': 'manager'});
