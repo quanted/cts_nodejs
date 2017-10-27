@@ -29,43 +29,30 @@ var celery = require('node-celery'),
             'tasks.test_celery': {
                 queue: 'manager'
             },
-            'tasks.cts_task': {
+            'tasks.chemaxon_task': {
                 queue: 'chemaxon'
             },
-            'tasks.cts_task': {
+            'tasks.sparc_task': {
                 queue: 'sparc'
             },
-            'tasks.cts_task': {
+            'tasks.epi_task': {
                 queue: 'epi'
             },
-            'tasks.cts_task': {
+            'tasks.test_task': {
                 queue: 'test'
             },
-            'tasks.cts_task': {
-                queue: 'test'  // putting testws on test queue
-            },
-            'tasks.cts_task': {
+            'tasks.measured_task': {
                 queue: 'measured'
             },
-            'tasks.cts_task': {
+            'tasks.metabolizer_task': {
                 queue: 'metabolizer'
             },
-            'tasks.cts_task': {
+            'tasks.cheminfo_task': {
                 queue: 'cheminfo'
             }
         }
-    }),
-    // mapping cts_task w/ proper queue/worker:
-    celery_tester = client.createTask('tasks.test_celery', {'queue': 'manager'});
-    chemaxon_work = client.createTask('tasks.cts_task', {'queue': 'chemaxon'});
-    metabolizer_work = client.createTask('tasks.cts_task', {'queue': 'metabolizer'});
-    epi_work = client.createTask('tasks.cts_task', {'queue': 'epi'});
-    measured_work = client.createTask('tasks.cts_task', {'queue': 'measured'});
-    sparc_work = client.createTask('tasks.cts_task', {'queue': 'sparc'});
-    test_work = client.createTask('tasks.cts_task', {'queue': 'test'});
-    cheminfo_work = client.createTask('tasks.cts_task', {'queue': 'cheminfo'});
-    manager_work = client.createTask('tasks.removeUserJobsFromQueue', {'queue': 'manager'});
-
+    });
+    
     client.on('error', function(err) {
         console.log(err);
     });
@@ -148,7 +135,7 @@ io.sockets.on('connection', function (socket)
         });
 
         console.log("Calling manager worker to cancel user job upon disconnect..");
-        manager_work.call([socket.id]);
+        client.call('tasks.manager_task', [socket.id]);
 
         return;
 
@@ -190,7 +177,7 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
     calc = data_obj['calc'];
 
     if ('cancel' in data_obj) {
-        manager_work.call([sessionid]);
+        client.call('tasks.manager_task', [sessionid]);
         // could send cancel notification to user..
         console.log("Calling manager worker to cancel user job upon disconnect...");
         return;
@@ -198,15 +185,15 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
 
     if (data_obj['service'] == 'getSpeciationData') {
         console.log("calling chemaxon worker for speciation data..");
-        chemaxon_work.call([data_obj]);
+        client.call('tasks.chemaxon_task', [data_obj]);
     }
     else if (data_obj['service'] == 'getTransProducts') {
         console.log("calling metabolizer worker for transformation products");
-        metabolizer_work.call([data_obj]);
+        client.call('tasks.metabolizer_task', [data_obj]);
     }
     else if (data_obj['service'] == 'getChemInfo') {
         console.log("calling chem info worker..");
-        cheminfo_work.call([data_obj]);
+        client.call('tasks.cheminfo_task', [data_obj]);
     }
     else {
         // Breaking user request up by calc, send to
@@ -214,19 +201,24 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
         for (var calc in data_obj['pchem_request']) {
             data_obj['calc'] = calc;
             if (calc == 'chemaxon') {
-                chemaxon_work.call([data_obj]); // this it??
+                console.log("sending request to chemaxon worker");
+                client.call('tasks.chemaxon_task', [data_obj]);
             }
             else if (calc == 'sparc') {
-                sparc_work.call([data_obj]);
+                console.log("sending request to sparc worker");
+                client.call('tasks.sparc_task', [data_obj]);
             }
             else if (calc == 'epi') {
-                epi_work.call([data_obj]);
+                console.log("sending request to epi worker");
+                client.call('tasks.epi_task', [data_obj]);
             }
             else if (calc == 'test') {
-                test_work.call([data_obj]);
+                console.log("sending request to test worker");
+                client.call('tasks.test_task', [data_obj]);
             }
             else if (calc == 'measured') {
-                measured_work.call([data_obj]);  
+                console.log("sending request to measured worker");
+                client.call('tasks.measured_task', [data_obj]);  
             }
         }
     }
