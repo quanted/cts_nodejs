@@ -24,31 +24,13 @@ var celery = require('node-celery'),
         CELERY_RESULT_BACKEND: redis_url,
         CELERY_ROUTES: {
             'tasks.removeUserJobsFromQueue': {
-                queue: 'manager'
+                queue: 'manager_queue', 
             },
             'tasks.test_celery': {
-                queue: 'manager'
+                queue: 'manager_queue'
             },
-            'tasks.chemaxon_task': {
-                queue: 'chemaxon'
-            },
-            'tasks.sparc_task': {
-                queue: 'sparc'
-            },
-            'tasks.epi_task': {
-                queue: 'epi'
-            },
-            'tasks.test_task': {
-                queue: 'test'
-            },
-            'tasks.measured_task': {
-                queue: 'measured'
-            },
-            'tasks.metabolizer_task': {
-                queue: 'metabolizer'
-            },
-            'tasks.cheminfo_task': {
-                queue: 'cheminfo'
+            'tasks.cts_task': {
+                queue: 'cts_queue'
             }
         }
     });
@@ -135,7 +117,7 @@ io.sockets.on('connection', function (socket)
         });
 
         console.log("Calling manager worker to cancel user job upon disconnect..");
-        client.call('tasks.manager_task', [socket.id]);
+        client.call('tasks.removeUserJobsFromQueue', [socket.id]);
 
         return;
 
@@ -178,56 +160,13 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
     calc = data_obj['calc'];
 
     if ('cancel' in data_obj) {
-        client.call('tasks.manager_task', [sessionid]);
+        client.call('tasks.removeUserJobsFromQueue', [sessionid]);
         console.log("Calling manager worker to cancel user job upon disconnect...");
         return;
     }
 
     initiateRequestsParsing(data_obj);
 }
-
-//     if (data_obj['service'] == 'getSpeciationData') {
-//         console.log("calling chemaxon worker for speciation data..");
-//         client.call('tasks.chemaxon_task', [data_obj]);
-//     }
-//     else if (data_obj['service'] == 'getTransProducts') {
-//         console.log("calling metabolizer worker for transformation products");
-//         client.call('tasks.metabolizer_task', [data_obj]);
-//     }
-//     else if (data_obj['service'] == 'getChemInfo') {
-//         console.log("calling chem info worker..");
-//         client.call('tasks.cheminfo_task', [data_obj]);
-//     }
-//     else {
-//         // Breaking user request up by calc, send to
-//         // the respective calc celery workers:
-//         for (var calc in data_obj['pchem_request']) {
-//             data_obj['calc'] = calc;
-//             if (calc == 'chemaxon') {
-//                 console.log("sending request to chemaxon worker");
-//                 client.call('tasks.chemaxon_task', [data_obj]);
-//             }
-//             else if (calc == 'sparc') {
-//                 console.log("sending request to sparc worker");
-//                 client.call('tasks.sparc_task', [data_obj]);
-//             }
-//             else if (calc == 'epi') {
-//                 console.log("sending request to epi worker");
-//                 client.call('tasks.epi_task', [data_obj]);
-//             }
-//             else if (calc == 'test') {
-//                 console.log("sending request to test worker");
-//                 client.call('tasks.test_task', [data_obj]);
-//             }
-//             else if (calc == 'measured') {
-//                 console.log("sending request to measured worker");
-//                 client.call('tasks.measured_task', [data_obj]);  
-//             }
-//         }
-//     }
-    
-// }
-
 
 
 
@@ -236,10 +175,6 @@ function initiateRequestsParsing(request_post) {
     //parses request up to fill worker queues w/ single chemical requests.
     //This was originally structured this way because revoking celery work
     //seems to only be successful for jobs not yet started.
-    //
-    //It accounts for the case of a user requesting data for many chemicals
-    //(single job), then leaving page; the celery workers would continue processing
-    //that job despite the user not being there :(
 
     console.log("Request post coming into cts_task" + request_post);
 
@@ -269,23 +204,17 @@ function parseByService(sessionid, request_post) {
 
     if (request_post['service'] == 'getSpeciationData') {
         console.log("celery worker consuming chemaxon task");
-        // _results = JchemCalc().data_request_handler(request_post);
-        // self.redis_conn.publish(sessionid, json.dumps(_results));
-        client.call('tasks.chemaxon_task', [request_post]);
+        client.call('tasks.cts_task', [request_post]);
     }
 
     else if (request_post['service'] == 'getTransProducts'){
         console.log("celery worker consuming metabolizer task");
-        // _results = MetabolizerCalc().data_request_handler(request_post);
-        // self.redis_conn.publish(sessionid, json.dumps(_results));
-        client.call('tasks.metabolizer_task', [request_post]);
+        client.call('tasks.cts_task', [request_post]);
     }
 
     else if (request_post['service'] == 'getChemInfo') {
         console.log("celery worker consuming cheminfo task");
-        // _results = ChemInfo().get_cheminfo(request_post);
-        // self.redis_conn.publish(sessionid, json.dumps(_results));
-        client.call('tasks.cheminfo_task', [request_post]);
+        client.call('tasks.cts_task', [request_post]);
     }
 
     else {
@@ -316,7 +245,7 @@ function parsePchemRequestByCalc(sessionid, request_post) {
 
     if (calc == 'measured') {
 
-        client.call('tasks.measured_task', [request_post]);
+        client.call('tasks.cts_task', [request_post]);
     }
 
     else if (calc == 'epi') {
@@ -329,7 +258,7 @@ function parsePchemRequestByCalc(sessionid, request_post) {
             request_post['prop'] = 'water_sol';  // trigger cts epi calc to get MP for epi request??
         }
 
-        client.call('tasks.epi_task', [request_post]);
+        client.call('tasks.cts_task', [request_post]);
 
     }
 
@@ -355,7 +284,7 @@ function parsePchemRequestByCalc(sessionid, request_post) {
                 for (var j = 0; j < chemaxon_kow_methods.length; j++) {
                     // loop 3 chemaxon methods for KOW (todo: centralized config, not hardcoded methods here, which are already declared in cts_calcs)
                     request_post['method'] = chemaxon_kow_methods[j];
-                    client.call('tasks.chemaxon_task', [request_post]);
+                    client.call('tasks.cts_task', [request_post]);
                 }
 
             }
@@ -363,21 +292,15 @@ function parsePchemRequestByCalc(sessionid, request_post) {
             else {
 
                 if (calc == 'chemaxon') {
-                    client.call('tasks.chemaxon_task', [request_post]);
-                    // _results = JchemCalc().data_request_handler(request_post)
-                    // self.redis_conn.publish(sessionid, json.dumps(_results))
+                    client.call('tasks.cts_task', [request_post]);
                 }
 
                 else if (calc == 'sparc') {
-                    client.call('tasks.sparc_task', [request_post]);
-                    // _results = SparcCalc().data_request_handler(request_post)
-                    // self.redis_conn.publish(sessionid, json.dumps(_results))
+                    client.call('tasks.cts_task', [request_post]);
                 }
 
                 else if (calc == 'test') {
-                    client.call('tasks.test_task', [request_post]);
-                    // _results = TestCalc().data_request_handler(request_post)
-                    // self.redis_conn.publish(sessionid, json.dumps(_results))
+                    client.call('tasks.cts_task', [request_post]);
                 }
 
             }
