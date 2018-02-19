@@ -5,12 +5,12 @@
 
 
 var config = require('./config');
-
 var querystring = require('querystring');
 var redis = require('redis');
 var http = require('http');
 var io = require('socket.io');
 var path = require('path');
+var express = require('express');
 
 var chemaxon_kow_methods = ['KLOP', 'VG', 'PHYS'];
 
@@ -57,7 +57,6 @@ var celery = require('node-celery'),
         console.log(err);
     });
 
-var express = require('express');
 var app = express()
     , server = http.createServer(app)
     , io = io.listen(server);
