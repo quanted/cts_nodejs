@@ -1,7 +1,7 @@
 // CTS_NODEJS Server
 // Handles CTS Frontend web sockets and
 // redis subscribe events. Pushes data
-// to user.
+// to user!
 
 
 var config = require('./config');
