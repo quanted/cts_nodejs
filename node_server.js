@@ -3,77 +3,79 @@
 // redis subscribe events. Pushes data
 // to user!
 
-
+// Local Config:
 var config = require('./config');
+
+// External Package Requirements:
 var querystring = require('querystring');
 var redis = require('redis');
 var http = require('http');
 var io = require('socket.io');
 var path = require('path');
 var express = require('express');
+var celery = require('node-celery');
 
+// Define server, set socket.io server to listen on said server:
+var app = express();
+var server = http.createServer(app);
+var io = io.listen(server);
 
-var default_timeout = 30 * 1000;  // 30s default timeout (units of ms)
-
-var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';  // uses env vars, or defaults to localhost
-
+var nodejs_port = config.server.port;  // node server port
+var nodejs_host = config.server.host;  // node server host
+var celery_default_timeout = config.celery.defaultTimeout;  // default timeout for celery worker calls
+var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';  // url for redis instance
 console.log("redis url " + redis_url);
 
-var celery = require('node-celery'),
-    client = celery.createClient({
-        CELERY_BROKER_URL: redis_url,
-        CELERY_RESULT_BACKEND: redis_url,
-        CELERY_ROUTES: {
-            'tasks.removeUserJobsFromQueue': {
-                queue: 'manager'
-            },
-            'tasks.test_celery': {
-                queue: 'manager'
-            },
-            'tasks.chemaxon_task': {
-                queue: 'chemaxon'
-            },
-            'tasks.sparc_task': {
-                queue: 'sparc'
-            },
-            'tasks.epi_task': {
-                queue: 'epi'
-            },
-            'tasks.test_task': {
-                queue: 'test'
-            },
-            'tasks.measured_task': {
-                queue: 'measured'
-            },
-            'tasks.metabolizer_task': {
-                queue: 'metabolizer'
-            },
-            'tasks.cheminfo_task': {
-                queue: 'cheminfo'
-            }
+
+server.listen(nodejs_port);  // Start Express server
+console.log("Server started.. \nTest page at http://" + nodejs_host + ":" + nodejs_port + "/test");
+
+
+// Create Celery client:
+var client = celery.createClient({
+    CELERY_BROKER_URL: redis_url,
+    CELERY_RESULT_BACKEND: redis_url,
+    CELERY_ROUTES: {
+        'tasks.removeUserJobsFromQueue': {
+            queue: 'manager'
+        },
+        'tasks.test_celery': {
+            queue: 'manager'
+        },
+        'tasks.chemaxon_task': {
+            queue: 'chemaxon'
+        },
+        'tasks.sparc_task': {
+            queue: 'sparc'
+        },
+        'tasks.epi_task': {
+            queue: 'epi'
+        },
+        'tasks.test_task': {
+            queue: 'test'
+        },
+        'tasks.measured_task': {
+            queue: 'measured'
+        },
+        'tasks.metabolizer_task': {
+            queue: 'metabolizer'
+        },
+        'tasks.cheminfo_task': {
+            queue: 'cheminfo'
         }
-    });
+    }
+});
     
-    client.on('error', function(err) {
-        console.log(err);
-    });
+client.on('error', function(err) {
+    console.log("An error occurred calling the celery worker: " + err);
+});
 
-var app = express()
-    , server = http.createServer(app)
-    , io = io.listen(server);
 
-var nodejs_port = config.server.port;
-var nodejs_host = config.server.host;
-
-server.listen(nodejs_port);
-
+// Celery worker test endpoint:
 app.get('/test', function(req, res){
   // opens test page for nodejs->celery connection
   res.sendFile(path.join(__dirname + '/public/html/ws_test_page.html'));
 });
-
-console.log("cts_nodejs running at " + nodejs_host + ", port " + nodejs_port);
-console.log("cts_nodejs test at /test");
 
 
 io.sockets.on('connection', function (socket) 
@@ -119,7 +121,7 @@ io.sockets.on('connection', function (socket)
             message: JSON.stringify(values)
         });
 
-        parseCTSRequestToCeleryWorkers(socket.id, message_obj, client);  // here we go...
+        parseCTSRequestToCeleryWorkers(socket.id, message_obj);  // here we go...
 
     });
 
@@ -170,7 +172,7 @@ io.sockets.on('connection', function (socket)
 });
 
 
-function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
+function parseCTSRequestToCeleryWorkers(sessionid, data_obj) {
     // TODO: Change name to old func name once it's working!
 
     data_obj['sessionid'] = sessionid;  // add sessionid to data object
@@ -178,7 +180,7 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
 
     if ('cancel' in data_obj) {
         client.call('tasks.manager_task', [sessionid], null, {
-            expires: new Date(Date.now() + default_timeout)
+            expires: new Date(Date.now() + celery_default_timeout)
         });
         // could send cancel notification to user..
         console.log("Calling manager worker to cancel user job upon disconnect...");
@@ -188,57 +190,64 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
     if (data_obj['service'] == 'getSpeciationData') {
         console.log("calling chemaxon worker for speciation data..");
         client.call('tasks.chemaxon_task', [data_obj], null, {
-            expires: new Date(Date.now() + default_timeout)
+            expires: new Date(Date.now() + celery_default_timeout)
         });
     }
     else if (data_obj['service'] == 'getTransProducts') {
         console.log("calling metabolizer worker for transformation products");
         client.call('tasks.metabolizer_task', [data_obj], null, {
-            expires: new Date(Date.now() + default_timeout)
+            expires: new Date(Date.now() + celery_default_timeout)
         });
     }
     else if (data_obj['service'] == 'getChemInfo') {
         console.log("calling chem info worker..");
         client.call('tasks.cheminfo_task', [data_obj], null, {
-            expires: new Date(Date.now() + default_timeout)
+            expires: new Date(Date.now() + celery_default_timeout)
         });
     }
     else {
-        // Breaking user request up by calc, send to
-        // the respective calc celery workers:
-        for (var calc in data_obj['pchem_request']) {
-            data_obj['calc'] = calc;
-            if (calc == 'chemaxon') {
-                console.log("sending request to chemaxon worker");
-                client.call('tasks.chemaxon_task', [data_obj], null, {
-                    expires: new Date(Date.now() + default_timeout)
-                });
-            }
-            else if (calc == 'sparc') {
-                console.log("sending request to sparc worker");
-                client.call('tasks.sparc_task', [data_obj], null, {
-                    expires: new Date(Date.now() + default_timeout)
-                });
-            }
-            else if (calc == 'epi') {
-                console.log("sending request to epi worker");
-                client.call('tasks.epi_task', [data_obj], null, {
-                    expires: new Date(Date.now() + default_timeout)
-                });
-            }
-            else if (calc == 'test') {
-                console.log("sending request to test worker");
-                client.call('tasks.test_task', [data_obj], null, {
-                    expires: new Date(Date.now() + default_timeout)
-                });
-            }
-            else if (calc == 'measured') {
-                console.log("sending request to measured worker");
-                client.call('tasks.measured_task', [data_obj], null, {
-                    expires: new Date(Date.now() + default_timeout)
-                });
-            }
-        }
+        handleCeleryPchemRequest(data_obj);
     }
     
+}
+
+
+function handleCeleryPchemRequest(data_obj) {
+
+    // Breaking user request up by calc, send to
+    // the respective calc celery workers:
+    for (var calc in data_obj['pchem_request']) {
+        data_obj['calc'] = calc;
+        if (calc == 'chemaxon') {
+            console.log("sending request to chemaxon worker");
+            client.call('tasks.chemaxon_task', [data_obj], null, {
+                expires: new Date(Date.now() + celery_default_timeout)
+            });
+        }
+        else if (calc == 'sparc') {
+            console.log("sending request to sparc worker");
+            client.call('tasks.sparc_task', [data_obj], null, {
+                expires: new Date(Date.now() + celery_default_timeout)
+            });
+        }
+        else if (calc == 'epi') {
+            console.log("sending request to epi worker");
+            client.call('tasks.epi_task', [data_obj], null, {
+                expires: new Date(Date.now() + celery_default_timeout)
+            });
+        }
+        else if (calc == 'test') {
+            console.log("sending request to test worker");
+            client.call('tasks.test_task', [data_obj], null, {
+                expires: new Date(Date.now() + celery_default_timeout)
+            });
+        }
+        else if (calc == 'measured') {
+            console.log("sending request to measured worker");
+            client.call('tasks.measured_task', [data_obj], null, {
+                expires: new Date(Date.now() + celery_default_timeout)
+            });
+        }
+    }
+
 }
