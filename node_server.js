@@ -12,11 +12,12 @@ var io = require('socket.io');
 var path = require('path');
 var express = require('express');
 
-var chemaxon_kow_methods = ['KLOP', 'VG', 'PHYS'];
+
+var default_timeout = 30 * 1000;  // 30s default timeout (units of ms)
 
 var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';  // uses env vars, or defaults to localhost
 
-console.log("redis url " + redis_url)
+console.log("redis url " + redis_url);
 
 var celery = require('node-celery'),
     client = celery.createClient({
@@ -176,7 +177,9 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
     calc = data_obj['calc'];
 
     if ('cancel' in data_obj) {
-        client.call('tasks.manager_task', [sessionid]);
+        client.call('tasks.manager_task', [sessionid], null, {
+            expires: new Date(Date.now() + default_timeout)
+        });
         // could send cancel notification to user..
         console.log("Calling manager worker to cancel user job upon disconnect...");
         return;
@@ -184,15 +187,21 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
 
     if (data_obj['service'] == 'getSpeciationData') {
         console.log("calling chemaxon worker for speciation data..");
-        client.call('tasks.chemaxon_task', [data_obj]);
+        client.call('tasks.chemaxon_task', [data_obj], null, {
+            expires: new Date(Date.now() + default_timeout)
+        });
     }
     else if (data_obj['service'] == 'getTransProducts') {
         console.log("calling metabolizer worker for transformation products");
-        client.call('tasks.metabolizer_task', [data_obj]);
+        client.call('tasks.metabolizer_task', [data_obj], null, {
+            expires: new Date(Date.now() + default_timeout)
+        });
     }
     else if (data_obj['service'] == 'getChemInfo') {
         console.log("calling chem info worker..");
-        client.call('tasks.cheminfo_task', [data_obj]);
+        client.call('tasks.cheminfo_task', [data_obj], null, {
+            expires: new Date(Date.now() + default_timeout)
+        });
     }
     else {
         // Breaking user request up by calc, send to
@@ -201,23 +210,33 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, client) {
             data_obj['calc'] = calc;
             if (calc == 'chemaxon') {
                 console.log("sending request to chemaxon worker");
-                client.call('tasks.chemaxon_task', [data_obj]);
+                client.call('tasks.chemaxon_task', [data_obj], null, {
+                    expires: new Date(Date.now() + default_timeout)
+                });
             }
             else if (calc == 'sparc') {
                 console.log("sending request to sparc worker");
-                client.call('tasks.sparc_task', [data_obj]);
+                client.call('tasks.sparc_task', [data_obj], null, {
+                    expires: new Date(Date.now() + default_timeout)
+                });
             }
             else if (calc == 'epi') {
                 console.log("sending request to epi worker");
-                client.call('tasks.epi_task', [data_obj]);
+                client.call('tasks.epi_task', [data_obj], null, {
+                    expires: new Date(Date.now() + default_timeout)
+                });
             }
             else if (calc == 'test') {
                 console.log("sending request to test worker");
-                client.call('tasks.test_task', [data_obj]);
+                client.call('tasks.test_task', [data_obj], null, {
+                    expires: new Date(Date.now() + default_timeout)
+                });
             }
             else if (calc == 'measured') {
                 console.log("sending request to measured worker");
-                client.call('tasks.measured_task', [data_obj]);  
+                client.call('tasks.measured_task', [data_obj], null, {
+                    expires: new Date(Date.now() + default_timeout)
+                });
             }
         }
     }
