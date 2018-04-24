@@ -24,15 +24,17 @@ var nodejs_port = config.server.port;  // node server port
 var nodejs_host = config.server.host;  // node server host
 var celery_default_timeout = config.celery.defaultTimeout;  // default timeout for celery worker calls
 var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';  // url for redis instance
-console.log("redis url " + redis_url);
+var redisClient = redis.createClient(redis_url);
+var redisManager = redis.createClient(redis_url);
+console.log("redis running at " + redis_url);
 
 
 server.listen(nodejs_port);  // Start Express server
 console.log("Server started.. \nTest page at http://" + nodejs_host + ":" + nodejs_port + "/test");
 
 
-// Create Celery client:
-var client = celery.createClient({
+// Create Celery celeryClient:
+var celeryClient = celery.createClient({
     CELERY_BROKER_URL: redis_url,
     CELERY_RESULT_BACKEND: redis_url,
     CELERY_ROUTES: {
@@ -66,7 +68,7 @@ var client = celery.createClient({
     }
 });
     
-client.on('error', function(err) {
+celeryClient.on('error', function(err) {
     console.log("An error occurred calling the celery worker: " + err);
 });
 
@@ -83,15 +85,14 @@ io.sockets.on('connection', function (socket)
 
     console.log("session id: " + socket.id);
 
-    var message_client = redis.createClient(redis_url);
-    // var message_client = redis.createClient();
+    // var redisClient = redis.createClient();
     // console.log("nodejs connected to redis..");
 
-    message_client.subscribe(socket.id); // create channel with client's socket id
+    redisClient.subscribe(socket.id); // create channel with celeryClient's socket id
     // console.log("subscribed to channel " + socket.id);
     
-    // Grab message from Redis that was created by django and send to client
-    message_client.on('message', function(channel, message){
+    // Grab message from Redis that was created by django and send to celeryClient
+    redisClient.on('message', function(channel, message){
         console.log("messaged received from celery worker via redis sub..")
         socket.send(message); // send to browser
     });
@@ -104,47 +105,37 @@ io.sockets.on('connection', function (socket)
 
         var message_obj = JSON.parse(message);  // parse json str to obj
 
-        var values = {};
-        for (var key in message_obj) {
-            if (message_obj.hasOwnProperty(key)) {
-                if (key == 'props') {
-                    values[key + '[]'] = message_obj[key];  // fix for keys like: 'keyname[]' 
-                }
-                else {
-                    values[key] = message_obj[key];
-                }
-            }
-        }
-
-        var query = querystring.stringify({
-            sessionid: socket.id,
-            message: JSON.stringify(values)
-        });
+        // redisClient.rpush([socket.id]);  // initialize jobs list using sessionid as key
 
         parseCTSRequestToCeleryWorkers(socket.id, message_obj);  // here we go...
 
     });
 
     socket.on('disconnect', function () {
+        /*
+        Triggered when a user closes site or 
+        refreshes the page
+        */
+        
+        // unscribe here or in removal task??
+        redisClient.unsubscribe(socket.id); // unsubscribe from redis channel
 
-        console.log("user " + socket.id + " disconnected..");
-        message_client.unsubscribe(socket.id); // unsubscribe from redis channel
-        var message_obj = {'cancel': true};  // cancel user's jobs
-
-        var query = querystring.stringify({
-            sessionid: socket.id,
-            message: JSON.stringify(message_obj)
-        });
+        // var message_obj = {'cancel': true};  // cancel user's jobs
+        // var query = querystring.stringify({
+        //     sessionid: socket.id,
+        //     message: JSON.stringify(message_obj)
+        // });
 
         console.log("Calling manager worker to cancel user job upon disconnect..");
-        client.call('tasks.manager_task', [socket.id]);
+        celeryClient.call('tasks.removeUserJobsFromQueue', [socket.id]);
 
         return;
 
     });
 
-    socket.on('error', function () {
+    socket.on('error', function (err) {
         console.log("A socket error occured in cts_nodejs..");
+        console.log(err);
     });
 
     socket.on('test_socket', function (message) {
@@ -162,9 +153,9 @@ io.sockets.on('connection', function (socket)
         });
 
         // passRequestToCTS(query);
-        client.call('tasks.test_celery', [socket.id, 'hello celery'], function(result) {
+        celeryClient.call('tasks.test_celery', [socket.id, 'hello celery'], function(result) {
             console.log(result);
-            client.end();
+            celeryClient.end();
         });
 
     });
@@ -176,10 +167,12 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj) {
     // TODO: Change name to old func name once it's working!
 
     data_obj['sessionid'] = sessionid;  // add sessionid to data object
-    calc = data_obj['calc'];
+    var calc = data_obj['calc'];
+    // var redisMulti = redisClient.multi();  // pipline multiple commands
 
     if ('cancel' in data_obj) {
-        client.call('tasks.manager_task', [sessionid], null, {
+        // Can celery worker be canceled from here? (probably not)
+        celeryClient.call('tasks.removeUserJobsFromQueue', [sessionid], null, {
             expires: new Date(Date.now() + celery_default_timeout)
         });
         // could send cancel notification to user..
@@ -189,25 +182,34 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj) {
 
     if (data_obj['service'] == 'getSpeciationData') {
         console.log("calling chemaxon worker for speciation data..");
-        client.call('tasks.chemaxon_task', [data_obj], null, {
+        celeryClient.call('tasks.chemaxon_task', [data_obj], null, {
             expires: new Date(Date.now() + celery_default_timeout)
         });
     }
     else if (data_obj['service'] == 'getTransProducts') {
         console.log("calling metabolizer worker for transformation products");
-        client.call('tasks.metabolizer_task', [data_obj], null, {
+        var jobObject = celeryClient.call('tasks.metabolizer_task', [data_obj], null, {
             expires: new Date(Date.now() + celery_default_timeout)
         });
+        console.log(jobObject);
+        console.log("Job ID for celery request: " + jobObject.taskid);
+        console.log("Adding job id to user's job list");
+        redisManager.rpush([sessionid, jobObject.taskid]);  // add job to user's job list
     }
     else if (data_obj['service'] == 'getChemInfo') {
         console.log("calling chem info worker..");
-        client.call('tasks.cheminfo_task', [data_obj], null, {
+        celeryClient.call('tasks.cheminfo_task', [data_obj], null, {
             expires: new Date(Date.now() + celery_default_timeout)
         });
     }
     else {
         handleCeleryPchemRequest(data_obj);
     }
+
+    // redisMulti.exec(function(errors, results) {
+    //     console.log("Errors " + errors);
+    //     console.log("Results: " + results);
+    // });
     
 }
 
@@ -220,31 +222,31 @@ function handleCeleryPchemRequest(data_obj) {
         data_obj['calc'] = calc;
         if (calc == 'chemaxon') {
             console.log("sending request to chemaxon worker");
-            client.call('tasks.chemaxon_task', [data_obj], null, {
+            celeryClient.call('tasks.chemaxon_task', [data_obj], null, {
                 expires: new Date(Date.now() + celery_default_timeout)
             });
         }
         else if (calc == 'sparc') {
             console.log("sending request to sparc worker");
-            client.call('tasks.sparc_task', [data_obj], null, {
+            celeryClient.call('tasks.sparc_task', [data_obj], null, {
                 expires: new Date(Date.now() + celery_default_timeout)
             });
         }
         else if (calc == 'epi') {
             console.log("sending request to epi worker");
-            client.call('tasks.epi_task', [data_obj], null, {
+            celeryClient.call('tasks.epi_task', [data_obj], null, {
                 expires: new Date(Date.now() + celery_default_timeout)
             });
         }
         else if (calc == 'test') {
             console.log("sending request to test worker");
-            client.call('tasks.test_task', [data_obj], null, {
+            celeryClient.call('tasks.test_task', [data_obj], null, {
                 expires: new Date(Date.now() + celery_default_timeout)
             });
         }
         else if (calc == 'measured') {
             console.log("sending request to measured worker");
-            client.call('tasks.measured_task', [data_obj], null, {
+            celeryClient.call('tasks.measured_task', [data_obj], null, {
                 expires: new Date(Date.now() + celery_default_timeout)
             });
         }
