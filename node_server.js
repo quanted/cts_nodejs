@@ -85,7 +85,7 @@ io.sockets.on('connection', function (socket)
 
     console.log("session id: " + socket.id);
 
-    var redisClient = redis.createClient();
+    var redisClient = redis.createClient(redis_url);
     // console.log("nodejs connected to redis..");
 
     redisClient.subscribe(socket.id); // create channel with celeryClient's socket id
