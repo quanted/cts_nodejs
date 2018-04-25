@@ -19,4 +19,9 @@ config.redis = {
 	'port': process.env.REDIS_PORT || 6379
 };
 
+// celery config:
+config.celery = {
+	defaultTimeout: process.env.CELERY_DEFAULT_TIMEOUT || 60 * 1000  // Default: 60s
+};
+
 module.exports = config;  // makes config obj a module!
