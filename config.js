@@ -21,7 +21,7 @@ config.redis = {
 
 // celery config:
 config.celery = {
-	defaultTimeout: process.env.CELERY_DEFAULT_TIMEOUT || 60 * 1000  // Default: 60s
+	defaultTimeout: process.env.CELERY_DEFAULT_TIMEOUT || 3 * 60 * 1000  // Default: 3m (absolute max)
 };
 
 module.exports = config;  // makes config obj a module!
