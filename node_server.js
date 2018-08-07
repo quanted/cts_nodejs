@@ -22,8 +22,10 @@ var io = io.listen(server);
 
 var nodejs_port = config.server.port;  // node server port
 var nodejs_host = config.server.host;  // node server host
-// var celery_default_timeout = config.celery.defaultTimeout;  // default timeout for celery worker calls
-var celery_default_timeout = config.celery.testingTimeout;  // default timeout for celery worker calls
+
+var celery_default_timeout = config.celery.defaultTimeout;  // default timeout for celery worker calls
+// var celery_default_timeout = config.celery.testingTimeout;  // default timeout for celery worker calls
+
 var redis_url = 'redis://' + config.redis.host + ':' + config.redis.port + '/0';  // url for redis instance
 // var redisClient = redis.createClient(redis_url);
 var redisManager = redis.createClient(redis_url);
