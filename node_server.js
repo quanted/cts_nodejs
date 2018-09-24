@@ -42,31 +42,13 @@ var celeryClient = celery.createClient({
     CELERY_RESULT_BACKEND: redis_url,
     CELERY_ROUTES: {
         'tasks.removeUserJobsFromQueue': {
-            queue: 'manager'
+            queue: 'manager_queue'
         },
         'tasks.test_celery': {
-            queue: 'manager'
+            queue: 'manager_queue'
         },
-        'tasks.chemaxon_task': {
-            queue: 'chemaxon'
-        },
-        'tasks.sparc_task': {
-            queue: 'sparc'
-        },
-        'tasks.epi_task': {
-            queue: 'epi'
-        },
-        'tasks.test_task': {
-            queue: 'test'
-        },
-        'tasks.measured_task': {
-            queue: 'measured'
-        },
-        'tasks.metabolizer_task': {
-            queue: 'metabolizer'
-        },
-        'tasks.cheminfo_task': {
-            queue: 'cheminfo'
+        'tasks.cts_task': {
+            queue: 'cts_queue'
         }
     }
 });
@@ -162,6 +144,7 @@ io.sockets.on('connection', function (socket)
 
 function parseCTSRequestToCeleryWorkers(sessionid, data_obj, socket) {
 
+    var ctsServices = ['getSpeciationData', 'getTransProducts', 'getChemInfo'];
     data_obj['sessionid'] = sessionid;  // add sessionid to data object
     var calc = data_obj['calc'];
     var jobObject = null;  // job object from calling celery worker (contains job id)
@@ -180,21 +163,10 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, socket) {
         return;
     }
 
-    if (data_obj['service'] == 'getSpeciationData') {
-        console.log("calling chemaxon worker for speciation data..");
-        jobObject = celeryClient.call('tasks.chemaxon_task', [data_obj], null, {
-            expires: new Date(Date.now() + celery_default_timeout)
-        });
-    }
-    else if (data_obj['service'] == 'getTransProducts') {
-        console.log("calling metabolizer worker for transformation products");
-        jobObject = celeryClient.call('tasks.metabolizer_task', [data_obj], null, {
-            expires: new Date(Date.now() + celery_default_timeout)
-        });
-    }
-    else if (data_obj['service'] == 'getChemInfo') {
-        console.log("calling chem info worker..");
-        jobObject = celeryClient.call('tasks.cheminfo_task', [data_obj], null, {
+    if (ctsServices.indexOf(data_obj['service']) > -1) {
+        // Calls a service (basically a longer-running/more-involved request than a pchem one)
+        console.log("calling " + data_obj['service'] + " service..");
+        jobObject = celeryClient.call('tasks.cts_task', [data_obj], null, {
             expires: new Date(Date.now() + celery_default_timeout)
         });
     }
@@ -215,37 +187,13 @@ function handleCeleryPchemRequest(sessionid, data_obj, socket) {
     // Breaking user request up by calc, send to
     // the respective calc celery workers:
     for (var calc in data_obj['pchem_request']) {
+        
         data_obj['calc'] = calc;
-        if (calc == 'chemaxon') {
-            console.log("sending request to chemaxon worker");
-            jobObject = celeryClient.call('tasks.chemaxon_task', [data_obj], null, {
-                expires: new Date(Date.now() + celery_default_timeout)
-            });
-        }
-        else if (calc == 'sparc') {
-            console.log("sending request to sparc worker");
-            jobObject = celeryClient.call('tasks.sparc_task', [data_obj], null, {
-                expires: new Date(Date.now() + celery_default_timeout)
-            });
-        }
-        else if (calc == 'epi') {
-            console.log("sending request to epi worker");
-            jobObject = celeryClient.call('tasks.epi_task', [data_obj], null, {
-                expires: new Date(Date.now() + celery_default_timeout)
-            });
-        }
-        else if (calc == 'test') {
-            console.log("sending request to test worker");
-            jobObject = celeryClient.call('tasks.test_task', [data_obj], null, {
-                expires: new Date(Date.now() + celery_default_timeout)
-            });
-        }
-        else if (calc == 'measured') {
-            console.log("sending request to measured worker");
-            jobObject = celeryClient.call('tasks.measured_task', [data_obj], null, {
-                expires: new Date(Date.now() + celery_default_timeout)
-            });
-        }
+
+        console.log("sending request to " + calc + " worker");
+        jobObject = celeryClient.call('tasks.cts_task', [data_obj], null, {
+            expires: new Date(Date.now() + celery_default_timeout)
+        });
 
         if (jobObject) {
             redisManager.rpush([sessionid, jobObject.taskid]);  // add job id to user's job list
