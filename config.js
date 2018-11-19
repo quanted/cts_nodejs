@@ -21,7 +21,7 @@ config.redis = {
 
 // celery config:
 config.celery = {
-	defaultTimeout: process.env.CELERY_DEFAULT_TIMEOUT || 3 * 60 * 1000,  // Default: 3m (absolute max)
+	defaultTimeout: process.env.CELERY_DEFAULT_TIMEOUT || 15 * 60 * 1000,  // Default: 3m (absolute max)
 	testingTimeout: process.env.CELERY_TEST_TIMEOUT || 100  // 0.1s timeout
 };
 
