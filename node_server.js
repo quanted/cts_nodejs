@@ -187,11 +187,52 @@ function handleCeleryPchemRequest(sessionid, data_obj, socket) {
     // Breaking user request up by calc, send to
     // the respective calc celery workers:
     for (var calc in data_obj['pchem_request']) {
-        
-        data_obj['calc'] = calc;
 
-        console.log("sending request to " + calc + " worker");
-        jobObject = celeryClient.call('tasks.cts_task', [data_obj], null, {
+        parsePchemRequestByProperty(sessionid, data_obj, socket, calc);
+        
+        // data_obj['calc'] = calc;
+
+        // console.log("sending request to " + calc + " worker");
+        // jobObject = celeryClient.call('tasks.cts_task', [data_obj], null, {
+        //     expires: new Date(Date.now() + celery_default_timeout)
+        // });
+
+        // if (jobObject) {
+        //     redisManager.rpush([sessionid, jobObject.taskid]);  // add job id to user's job list
+        // }
+
+    }
+
+}
+
+
+
+function parsePchemRequestByProperty(sessionid, data_obj, socket, calc) {
+
+    var jobObject = null;
+
+    var props = data_obj['pchem_request'][calc];
+    console.log("props ");
+    console.log(props);
+
+    // for (var propInd in data_obj['pchem_request'][calc]) {
+        for (var propInd in props) {
+
+        var newDataObj = data_obj;
+
+        console.log("prop ind: " + propInd);
+
+        var requestedProp = props[propInd];
+
+        console.log("requestedProp " + requestedProp);
+
+        newDataObj['calc'] = calc;
+        newDataObj['pchem_request'][calc] = [requestedProp];  // sends pchem request by prop to the cts worker
+
+        console.log("sending request: ");
+        console.log(newDataObj);
+
+        jobObject = celeryClient.call('tasks.cts_task', [newDataObj], null, {
             expires: new Date(Date.now() + celery_default_timeout)
         });
 
