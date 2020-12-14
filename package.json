@@ -4,7 +4,7 @@
 	"description": "cts web socket and session managing",
 	"main": "node_server.js",
 	"dependencies": {
-		"dotenv": "^5.0.1",
+		"dotenv": "^8.2.0",
 		"express": "^4.16.3",
 		"node-celery": "^0.2.8",
 		"path": "^0.12.7",
