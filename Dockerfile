@@ -1,5 +1,5 @@
 # debian with buildpack-deps
-FROM node:latest
+FROM node:lts-alpine
 
 WORKDIR /src
 
