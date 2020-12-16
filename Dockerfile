@@ -3,10 +3,9 @@ FROM node:lts-alpine
 
 WORKDIR /src
 
-COPY package.json /src
-RUN npm install
-
 COPY . /src
+
+RUN npm install
 
 EXPOSE 4000
 
