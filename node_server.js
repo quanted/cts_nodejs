@@ -10,7 +10,6 @@ var config = require('./config');
 var querystring = require('querystring');
 var redis = require('redis');
 var http = require('http');
-var io = require('socket.io');
 var path = require('path');
 var express = require('express');
 var celery = require('node-celery');
@@ -18,7 +17,7 @@ var celery = require('node-celery');
 // Define server, set socket.io server to listen on said server:
 var app = express();
 var server = http.createServer(app);
-var io = io.listen(server);
+const io = require('socket.io')(server);
 
 var nodejs_port = config.server.port;  // node server port
 var nodejs_host = config.server.host;  // node server host
