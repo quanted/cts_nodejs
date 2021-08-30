@@ -9,7 +9,8 @@
 		"express": "^4.17.1",
 		"node-celery": "^0.2.8",
 		"path": "^0.12.7",
-		"querystring": "^0.2.0",
+		"querystring": "^0.2.1",
+		"redis": "^2.8.0",
 		"redis": "^3.1.2",
 		"socket.io": "^2.1.0"
 	}
