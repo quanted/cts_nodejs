@@ -3,17 +3,14 @@
 	"version": "0.0.1",
 	"description": "cts web socket and session managing",
 	"main": "node_server.js",
+	"author": "nick pope",
 	"dependencies": {
 		"dotenv": "^5.0.1",
-		"express": "^4.16.3",
+		"express": "^4.17.1",
 		"node-celery": "^0.2.8",
 		"path": "^0.12.7",
-		"querystring": "^0.2.0",
-		"redis": "^2.8.0",
+		"querystring": "^0.2.1",
+		"redis": "^3.1.2",
 		"socket.io": "^2.4.0"
-	},
-	"engines": {
-		"node": "^8.9.4"
-	},
-	"author": "nick pope"
+	}
 }
