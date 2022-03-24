@@ -7,7 +7,7 @@
 var config = require('./config');
 
 // External Package Requirements:
-var querystring = require('querystring');
+var querystring = require('query-string');
 var redis = require('redis');
 var http = require('http');
 var path = require('path');
