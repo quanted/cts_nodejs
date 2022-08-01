@@ -3,7 +3,7 @@ name: Create and publish a Docker image
 
 on:
   push:
-    branches: ['dev-kube', 'dev-gl']
+    branches: ['dev-kube', 'dev-gl', 'dev']
 
 env:
   REGISTRY: ghcr.io
