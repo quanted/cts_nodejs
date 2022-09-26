@@ -17,7 +17,7 @@ var celery = require('node-celery');
 // Define server, set socket.io server to listen on said server:
 var app = express();
 var server = http.createServer(app);
-const io = require('socket.io')(server);
+const io = require('socket.io')(server, {path: '/cts/ws/'});
 
 var nodejs_port = config.server.port;  // node server port
 var nodejs_host = config.server.host;  // node server host
