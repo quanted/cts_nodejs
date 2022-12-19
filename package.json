@@ -14,6 +14,6 @@
 		"socket.io": "^4.2.0"
 	},
 	"devDependencies": {
-		"npm-check-updates": "12.5.4"
+		"npm-check-updates": "16.6.0"
 	}
 }
