@@ -4,20 +4,36 @@
 // to user!
 
 // Local Config:
-var config = require('./config');
+// var config = require('./config');
+// import config from './config';
+// import * as config from './config.js';
+import { config } from './config.mjs';
 
 // External Package Requirements:
-var querystring = require('query-string');
-var redis = require('redis');
-var http = require('http');
-var path = require('path');
-var express = require('express');
-var celery = require('node-celery');
+// var querystring = require('query-string');
+import stringify from 'query-string';
+// var redis = require('redis');
+// var http = require('http');
+// var path = require('path');
+// var express = require('express');
+// var celery = require('node-celery');
+import redis from 'redis';
+import http from 'http';
+import path from 'path';
+import express from 'express';
+import celery from 'node-celery';  // NOTE: doesn't support ESM
+
+// import { Server } from 'socket.io';
 
 // Define server, set socket.io server to listen on said server:
 var app = express();
 var server = http.createServer(app);
-const io = require('socket.io')(server);
+// const io = require('socket.io')(server, {path: '/cts/ws/'});
+
+import {Server} from 'socket.io';
+const io = new Server(server, { path: '/cts/ws/'});
+
+// console.log("IO: ", io)
 
 var nodejs_port = config.server.port;  // node server port
 var nodejs_host = config.server.host;  // node server host
@@ -51,6 +67,8 @@ var celeryClient = celery.createClient({
         }
     }
 });
+
+console.log("Celery client created: ", celeryClient)
     
 celeryClient.on('error', function(err) {
     console.log("An error occurred calling the celery worker: " + err);
@@ -69,14 +87,14 @@ io.sockets.on('connection', function (socket)
 
     console.log("session id: " + socket.id);
 
-    var redisClient = redis.createClient(redis_url);
+    // var redisClient = redis.createClient(redis_url);
     // console.log("nodejs connected to redis..");
 
-    redisClient.subscribe(socket.id); // create channel with celeryClient's socket id
+    redisManager.subscribe(socket.id); // create channel with celeryClient's socket id
     // console.log("subscribed to channel " + socket.id);
     
     // Grab message from Redis that was created by django and send to celeryClient
-    redisClient.on('message', function(channel, message){
+    redisManager.on('message', function(channel, message){
         console.log(">>> messaged received from celery worker via redis sub..")
         console.log("Channel: " + channel);
         // console.log("Message: " + message);
@@ -101,7 +119,7 @@ io.sockets.on('connection', function (socket)
         */
         
         // unscribe here or in removal task??
-        redisClient.unsubscribe(socket.id); // unsubscribe from redis channel
+        redisManager.unsubscribe(socket.id); // unsubscribe from redis channel
 
         console.log("Calling manager worker to cancel user job upon disconnect..");
 

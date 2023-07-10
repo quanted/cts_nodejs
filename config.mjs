@@ -5,7 +5,7 @@
 
 var config = {};
 
-console.log("envs: " + process.env);
+// console.log("envs: " + process.env);
 
 // nodejs server config
 config.server = {
@@ -25,4 +25,5 @@ config.celery = {
 	testingTimeout: process.env.CELERY_TEST_TIMEOUT || 100  // 0.1s timeout
 };
 
-module.exports = config;  // makes config obj a module!
+// module.exports = config;  // makes config obj a module!
+export { config };
