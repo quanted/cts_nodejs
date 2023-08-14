@@ -1,6 +1,4 @@
-# debian with buildpack-deps
-# FROM node:lts-alpine
-FROM ghcr.io/quanted/cts-nodejs-base:dev-kube
+FROM node:slim
 
 ENV APP_USER=node
 
