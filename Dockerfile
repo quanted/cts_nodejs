@@ -8,6 +8,7 @@ WORKDIR /src
 COPY . /src
 
 RUN npm install
+RUN npm update -g npm
 
 # RUN npm install && \
 # 	npm audit fix
