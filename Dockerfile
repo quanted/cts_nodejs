@@ -1,4 +1,5 @@
-FROM node:slim
+# FROM node:slim
+FROM node:lts-alpine
 
 ENV APP_USER=node
 
