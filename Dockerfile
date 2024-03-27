@@ -9,7 +9,6 @@ COPY . /src
 
 RUN npm install
 RUN npm update -g npm
-RUN npm install -g ip@2.0.1
 
 # RUN npm install && \
 # 	npm audit fix
