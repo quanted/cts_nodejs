@@ -15,6 +15,7 @@ RUN npm install
 
 # CVE Resolutions
 RUN rm -rf /usr/local/lib/node_modules/cross-spawn && \
+    cd /usr/local/lib/node_modules/npm && \
     npm install -g cross-spawn@7.0.5
 
 RUN chown -R $APP_USER:$APP_USER /src
