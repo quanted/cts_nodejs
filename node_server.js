@@ -7,7 +7,6 @@
 var config = require('./config');
 
 // External Package Requirements:
-var querystring = require('query-string');
 var redis = require('redis');
 var http = require('http');
 var path = require('path');
@@ -67,7 +66,7 @@ app.get('/test', function(req, res){
 io.sockets.on('connection', function (socket) 
 {
 
-    console.log("session id: " + socket.id);
+    // console.log("session id: " + socket.id);
 
     var redisClient = redis.createClient(redis_url);
     // console.log("nodejs connected to redis..");
@@ -77,21 +76,16 @@ io.sockets.on('connection', function (socket)
     
     // Grab message from Redis that was created by django and send to celeryClient
     redisClient.on('message', function(channel, message){
-        console.log(">>> messaged received from celery worker via redis sub..")
-        console.log("Channel: " + channel);
-        // console.log("Message: " + message);
+        // console.log(">>> messaged received from celery worker via redis sub..")
+        // console.log("Channel: " + channel);
         socket.send(message); // send to browser
     });
     
     
     socket.on('get_data', function (message) {
         // Request event from CTS Frontend
-
-        console.log("nodejs server received message..");
-
         var message_obj = JSON.parse(message);  // parse json str to obj
         parseCTSRequestToCeleryWorkers(socket.id, message_obj, socket);  // here we go...
-
     });
 
     socket.on('disconnect', function (err) {
@@ -125,17 +119,10 @@ io.sockets.on('connection', function (socket)
     // test django-cts celery worker
     socket.on('test_celery', function (message) {
         console.log("received message: " + message);
-        var query = querystring.stringify({
-            sessionid: socket.id, // cts will now publish to session channel
-            message: "hello celery"
-        });
-
-        // passRequestToCTS(query);
         celeryClient.call('tasks.test_celery', [socket.id, 'hello celery'], function(result) {
             console.log(result);
             celeryClient.end();
         });
-
     });
 
 });
@@ -155,16 +142,16 @@ function parseCTSRequestToCeleryWorkers(sessionid, data_obj, socket) {
         });
         // could send cancel notification to user..
         // console.log("Calling manager worker to cancel user job upon disconnect...");
-        console.log("Sending cancel signal to 'cancel' channel");
-        console.log("Data Object: ");
-        console.log(data_obj);
+        // console.log("Sending cancel signal to 'cancel' channel");
+        // console.log("Data Object: ");
+        // console.log(data_obj);
         socket.emit('cancel', true);
         return;
     }
 
     if (ctsServices.indexOf(data_obj['service']) > -1) {
         // Calls a service (basically a longer-running/more-involved request than a pchem one)
-        console.log("calling " + data_obj['service'] + " service..");
+        // console.log("calling " + data_obj['service'] + " service..");
         jobObject = celeryClient.call('tasks.cts_task', [data_obj], null, {
             expires: new Date(Date.now() + celery_default_timeout)
         });
@@ -189,7 +176,7 @@ function handleCeleryPchemRequest(sessionid, data_obj, socket) {
         
         data_obj['calc'] = calc;
 
-        console.log("sending request to " + calc + " worker");
+        // console.log("sending request to " + calc + " worker");
         jobObject = celeryClient.call('tasks.cts_task', [data_obj], null, {
             expires: new Date(Date.now() + celery_default_timeout)
         });
